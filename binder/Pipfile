@@ -25,7 +25,7 @@ ipywidgets = "*"
 jupyterlab-widgets = "==1.1.7"
 ipykernel = "*"
 jupyterlab = "==3.6.4"
-pyspark-extension = "==2.11.0.3.4"
+#pyspark-extension = "==2.11.0.3.4"
 
 [requires]
 python_version = "3.9"
