@@ -18,8 +18,6 @@ import org.apache.sis.referencing.cs.AxesConvention;
 import org.apache.sis.referencing.CRS;
 import org.apache.sis.util.Utilities;
 import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.CRS;
-import org.apache.sis.referencing.operation.;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -93,8 +91,6 @@ public class FunctionsGeoTools {
     public static CoordinateReferenceSystem sridToCRS(int srid) {
         try {
             return CRS.forCode("EPSG:" + srid);
-        } catch (NoSuchAuthorityCodeException e) {
-            throw new RuntimeException(e);
         } catch (FactoryException e) {
             throw new IllegalArgumentException("Cannot decode SRID " + srid, e);
         }
