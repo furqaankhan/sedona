@@ -94,7 +94,6 @@
         <geoglib.version>1.52</geoglib.version>
         <caffeine.version>2.9.2</caffeine.version>
 
-        <sis.scope>provided</sis.scope>
         <!-- Because it's not in Maven central, make it provided by default -->
         <cdm.scope>provided</cdm.scope>
 
@@ -173,14 +172,12 @@
                 <groupId>org.apache.sis.core</groupId>
                 <artifactId>sis-referencing</artifactId>
                 <version>${sis.version}</version>
-                <scope>compile</scope>
             </dependency>
             <!--for CRS transformation-->
             <dependency>
                 <groupId>org.apache.sis.core</groupId>
                 <artifactId>sis-feature</artifactId>
                 <version>${sis.version}</version>
-                <scope>${sis.scope}</scope>
             </dependency>
             <!--for CRS transformation-->
             <dependency>
