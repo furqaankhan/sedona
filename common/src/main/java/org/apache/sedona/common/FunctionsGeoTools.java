@@ -90,7 +90,7 @@ public class FunctionsGeoTools {
      */
     public static CoordinateReferenceSystem sridToCRS(int srid) {
         try {
-            return CRS.forCode("EPSG:" + srid);
+            return longitudeFirstCRS(CRS.forCode("EPSG:" + srid));
         } catch (FactoryException e) {
             throw new IllegalArgumentException("Cannot decode SRID " + srid, e);
         }
@@ -102,7 +102,7 @@ public class FunctionsGeoTools {
         try {
             // Try to parse as a well-known CRS code
             // Longitude first, then latitude
-            return CRS.forCode(CRSString);
+            return longitudeFirstCRS(CRS.forCode(CRSString));
         }
         catch (NoSuchAuthorityCodeException e) {
             try {
@@ -113,6 +113,14 @@ public class FunctionsGeoTools {
                 throw new FactoryException("First failed to read as a well-known CRS code: \n" + e.getMessage() + "\nThen failed to read as a WKT CRS string: \n" + ex.getMessage());
             }
         }
+    }
+
+    /**
+     * @param crs
+     * @return the CRS that is Longitude first
+     */
+    private static CoordinateReferenceSystem longitudeFirstCRS(CoordinateReferenceSystem crs) {
+        return AbstractCRS.castOrCopy(crs).forConvention(AxesConvention.DISPLAY_ORIENTED);
     }
 
     public static Geometry voronoiPolygons(Geometry geom, double tolerance, Geometry extendTo) {
