@@ -13,21 +13,22 @@
  */
 package org.apache.sedona.common;
 
+import org.apache.sis.referencing.crs.AbstractCRS;
+import org.apache.sis.referencing.cs.AxesConvention;
+import org.apache.sis.referencing.CRS;
+import org.apache.sis.util.Utilities;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
-import org.geotools.referencing.ReferencingFactoryFinder;
-import org.geotools.util.factory.Hints;
+import org.apache.sis.referencing.operation.;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.triangulate.VoronoiDiagramBuilder;
-import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
-
-
+import org.opengis.util.FactoryException;
 
 
 public class FunctionsGeoTools {
@@ -77,8 +78,8 @@ public class FunctionsGeoTools {
         }
         CoordinateReferenceSystem sourceCRS = parseCRSString(sourceCRScode);
         // If sourceCRS and targetCRS are equal, return the geometry unchanged
-        if (!CRS.equalsIgnoreMetadata(sourceCRS, targetCRS)) {
-            MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, lenient);
+        if (!Utilities.equalsIgnoreMetadata(sourceCRS, targetCRS)) {
+            MathTransform transform = CRS.findOperation(sourceCRS, targetCRS, null).getMathTransform();
             return JTS.transform(geometry, transform);
         }
         else return geometry;
@@ -91,7 +92,9 @@ public class FunctionsGeoTools {
      */
     public static CoordinateReferenceSystem sridToCRS(int srid) {
         try {
-            return CRS.decode("EPSG:" + srid, true);
+            return CRS.forCode("EPSG:" + srid);
+        } catch (NoSuchAuthorityCodeException e) {
+            throw new RuntimeException(e);
         } catch (FactoryException e) {
             throw new IllegalArgumentException("Cannot decode SRID " + srid, e);
         }
@@ -103,13 +106,12 @@ public class FunctionsGeoTools {
         try {
             // Try to parse as a well-known CRS code
             // Longitude first, then latitude
-            return CRS.decode(CRSString, true);
+            return CRS.forCode(CRSString);
         }
         catch (NoSuchAuthorityCodeException e) {
             try {
                 // Try to parse as a WKT CRS string, longitude first
-                Hints hints = new Hints(Hints.FORCE_LONGITUDE_FIRST_AXIS_ORDER, Boolean.TRUE);
-                return ReferencingFactoryFinder.getCRSFactory(hints).createFromWKT(CRSString);
+                return AbstractCRS.castOrCopy(CRS.fromWKT(CRSString)).forConvention(AxesConvention.DISPLAY_ORIENTED);
             }
             catch (FactoryException ex) {
                 throw new FactoryException("First failed to read as a well-known CRS code: \n" + e.getMessage() + "\nThen failed to read as a WKT CRS string: \n" + ex.getMessage());
