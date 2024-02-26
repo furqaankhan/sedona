@@ -20,14 +20,13 @@ import org.apache.sedona.common.sphere.Haversine;
 import org.apache.sedona.common.sphere.Spheroid;
 import org.apache.sedona.common.utils.GeomUtils;
 import org.apache.sedona.common.utils.S2Utils;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.operation.projection.ProjectionException;
+import org.apache.sis.referencing.CRS;
 import org.junit.Test;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
-import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.operation.TransformException;
+import org.opengis.util.FactoryException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -409,6 +408,7 @@ public class FunctionsTest extends TestBase {
         Set<?> copy = new HashSet<>(s1);
         copy.retainAll(s2);
         return !copy.isEmpty();
+        Trans
     }
 
     @Test
@@ -1893,7 +1893,7 @@ public class FunctionsTest extends TestBase {
         assertTrue(e.getMessage().contains("First failed to read as a well-known CRS code"));
 
         // The source CRS is a WKT CRS string
-        String crsWkt = CRS.decode("EPSG:4326", true).toWKT();
+        String crsWkt = GeomUtils.longitudeFirstCRS(CRS.forCode("EPSG:4326")).toWKT();
         geomActual = FunctionsGeoTools.transform(geomExpected, crsWkt, "EPSG:3857");
         assertEquals(1.3358338895192828E7, geomActual.getCoordinate().x, FP_TOLERANCE);
         assertEquals(8399737.889818355, geomActual.getCoordinate().y, FP_TOLERANCE);
@@ -1906,7 +1906,7 @@ public class FunctionsTest extends TestBase {
 
         // The source and target CRS are different, and latitude is out of range
         Point geometryWrong = GEOMETRY_FACTORY.createPoint(new Coordinate(60, 120));
-        assertThrows(ProjectionException.class, () -> FunctionsGeoTools.transform(geometryWrong, "EPSG:4326", "EPSG:3857"));
+        assertThrows(TransformException.class, () -> FunctionsGeoTools.transform(geometryWrong, "EPSG:4326", "EPSG:3857"));
 
 
     }

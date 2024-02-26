@@ -13,6 +13,8 @@
  */
 package org.apache.sedona.common.utils;
 
+import org.apache.sis.referencing.crs.AbstractCRS;
+import org.apache.sis.referencing.cs.AxesConvention;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.locationtech.jts.io.ByteOrderValues;
@@ -25,6 +27,7 @@ import org.locationtech.jts.algorithm.distance.DiscreteFrechetDistance;
 import org.locationtech.jts.algorithm.distance.DiscreteHausdorffDistance;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.nio.ByteOrder;
 import java.util.*;
@@ -544,5 +547,13 @@ public class GeomUtils {
         } catch (TopologyException e) {
             return geom;
         }
+    }
+
+    /**
+     * @param crs CRS to be converted to longitude first
+     * @return the CRS that is Longitude first
+     */
+    public static CoordinateReferenceSystem longitudeFirstCRS(CoordinateReferenceSystem crs) {
+        return AbstractCRS.castOrCopy(crs).forConvention(AxesConvention.DISPLAY_ORIENTED);
     }
 }

@@ -20,7 +20,7 @@ package org.apache.sedona.common.raster;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import org.geotools.referencing.CRS;
+import org.apache.sis.util.Utilities;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.ByteArrayInputStream;
@@ -59,7 +59,7 @@ public class CRSSerializer {
         @Override
         public boolean equals(Object obj) {
             if (obj instanceof CRSKey) {
-                return CRS.equalsIgnoreMetadata(crs, ((CRSKey) obj).crs);
+                return Utilities.equalsIgnoreMetadata(crs, ((CRSKey) obj).crs);
             } else {
                 return false;
             }

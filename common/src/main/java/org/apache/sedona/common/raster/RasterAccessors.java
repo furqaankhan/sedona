@@ -21,16 +21,15 @@ package org.apache.sedona.common.raster;
 import org.apache.sedona.common.utils.RasterUtils;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridEnvelope2D;
-import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
+import org.opengis.util.FactoryException;
 
 import java.awt.geom.Point2D;
 import java.util.Arrays;
@@ -41,13 +40,6 @@ public class RasterAccessors
     public static int srid(GridCoverage2D raster) throws FactoryException
     {
         CoordinateReferenceSystem crs = raster.getCoordinateReferenceSystem();
-        if (crs instanceof DefaultEngineeringCRS) {
-            // GeoTools defaults to internal non-standard epsg codes, like 404000, if crs is missing.
-            // We need to check for this case and return 0 instead.
-            if (((DefaultEngineeringCRS) crs).isWildcard()) {
-                return 0;
-            }
-        }
         Set<ReferenceIdentifier> crsIds = crs.getIdentifiers();
         if (crsIds.isEmpty()) {
             return 0;

@@ -18,16 +18,18 @@
  */
 package org.apache.sedona.common.raster;
 
+import org.apache.sedona.common.utils.GeomUtils;
 import org.apache.sedona.common.utils.RasterUtils;
+import org.apache.sis.referencing.CRS;
 import org.geotools.coverage.grid.GridCoordinates2D;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.CRS;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.junit.Test;
 import org.locationtech.jts.geom.*;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.operation.TransformException;
+import org.opengis.util.FactoryException;
 
 import java.io.IOException;
 
@@ -217,13 +219,13 @@ public class RasterAccessorsTest extends RasterTestBase
     }
 
     @Test
-    public void testGridCoordPointDifferentSRID() throws FactoryException, TransformException {
+    public void testGridCoordPointDifferentSRID() throws TransformException, FactoryException {
         double longitude = -47, latitude = 51;
         int srid = 4326;
         GridCoverage2D emptyRaster = RasterConstructors.makeEmptyRaster(1, 5, 5, -53, 51, 1, -1, 0, 0, srid);
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), srid);
         Geometry point = geometryFactory.createPoint(new Coordinate(longitude, latitude));
-        point = JTS.transform(point, CRS.findMathTransform(emptyRaster.getCoordinateReferenceSystem(), CRS.decode("EPSG:3857", true)));
+        point = JTS.transform(point, CRS.findOperation(emptyRaster.getCoordinateReferenceSystem(), GeomUtils.longitudeFirstCRS(CRS.forCode("EPSG:3857"))));
         point.setSRID(3857);
         Coordinate coords = RasterAccessors.getGridCoord(emptyRaster, point).getCoordinate();
         assertEquals(7, coords.getX(), 1e-9);
