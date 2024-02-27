@@ -18,6 +18,10 @@
  */
 package org.apache.sedona.common.raster;
 
+import org.apache.sedona.common.utils.SISInternal;
+import org.apache.sis.coverage.grid.GridCoverage2D;
+import org.apache.sis.referencing.CRS;
+import org.apache.sis.referencing.CommonCRS;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
@@ -34,6 +38,7 @@ import org.opengis.geometry.BoundingBox;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
+import org.opengis.util.FactoryException;
 
 import java.awt.image.DataBuffer;
 import java.io.IOException;
@@ -308,7 +313,7 @@ public class RasterPredicatesTest extends RasterTestBase {
     }
 
     @Test
-    public void testContainsDifferentCrs() throws FactoryException, TransformException {
+    public void testContainsDifferentCrs()  {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 3857);
         Geometry geometry = geometryFactory.toGeometry(new Envelope(5, 10, 5, 10));
         GridCoverage2D raster = RasterConstructors.makeEmptyRaster(1, 20, 20, 2, 22, 1, -1, 0, 0, 3857);
@@ -317,7 +322,7 @@ public class RasterPredicatesTest extends RasterTestBase {
 
         //geometry protruding out of the raster envelope
         geometry = geometryFactory.toGeometry(new Envelope(2, 20, 2, 25));
-        geometry = JTS.transform(geometry, CRS.findMathTransform(raster.getCoordinateReferenceSystem(), CRS.decode("EPSG:4326", true)));
+        geometry = SISInternal.transform(geometry, CRS.findOperation(raster.getCoordinateReferenceSystem(), CommonCRS.WGS84.normalizedGeographic()));
         geometry.setSRID(4326);
         result = RasterPredicates.rsContains(raster, geometry);
         Assert.assertFalse(result);
@@ -403,7 +408,7 @@ public class RasterPredicatesTest extends RasterTestBase {
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
         Geometry geometry = geometryFactory.toGeometry(new Envelope(30, 60, 10, 50));
         GridCoverage2D raster = RasterConstructors.makeEmptyRaster(1, 20, 20, 32, 35, 1, -1, 0, 0, 4326);
-        geometry = JTS.transform(geometry, CRS.findMathTransform(raster.getCoordinateReferenceSystem(), CRS.decode("EPSG:3857", true)));
+        geometry = SISInternal.transform(geometry, CRS.findOperation(raster.getCoordinateReferenceSystem(), CommonCRS.WGS84.normalizedGeographic()));
         geometry.setSRID(3857);
         boolean result = RasterPredicates.rsWithin(raster, geometry);
         Assert.assertTrue(result);
@@ -466,10 +471,10 @@ public class RasterPredicatesTest extends RasterTestBase {
 
     @Test
     public void testIsCRSMatchesEPSGCode() throws FactoryException {
-        CoordinateReferenceSystem epsg4326 = CRS.decode("EPSG:4326");
-        CoordinateReferenceSystem epsg4326LonLat = CRS.decode("EPSG:4326", true);
-        CoordinateReferenceSystem wgs84 = DefaultGeographicCRS.WGS84;
-        CoordinateReferenceSystem epsg3857 = CRS.decode("EPSG:3857");
+        CoordinateReferenceSystem epsg4326 = CommonCRS.WGS84.geographic();
+        CoordinateReferenceSystem epsg4326LonLat = CommonCRS.WGS84.normalizedGeographic();
+        CoordinateReferenceSystem wgs84 = CommonCRS.WGS84.normalizedGeographic();
+        CoordinateReferenceSystem epsg3857 = CRS.forCode("EPSG:3857");
         Assert.assertFalse(RasterPredicates.isCRSMatchesSRID(epsg4326, 4326));
         Assert.assertTrue(RasterPredicates.isCRSMatchesSRID(epsg4326LonLat, 4326));
         Assert.assertTrue(RasterPredicates.isCRSMatchesSRID(wgs84, 4326));

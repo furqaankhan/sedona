@@ -19,6 +19,7 @@
 package org.apache.sedona.common.raster;
 
 import org.apache.sedona.common.utils.RasterUtils;
+import org.apache.sis.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
@@ -53,7 +54,7 @@ public class RasterAccessors
     }
 
     public static int numBands(GridCoverage2D raster) {
-        return raster.getNumSampleDimensions();
+        return raster.getSampleDimensions().size();
     }
 
     public static int getWidth(GridCoverage2D raster) {

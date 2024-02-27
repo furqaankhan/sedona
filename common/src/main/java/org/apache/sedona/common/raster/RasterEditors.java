@@ -20,6 +20,8 @@ package org.apache.sedona.common.raster;
 
 import org.apache.sedona.common.FunctionsGeoTools;
 import org.apache.sedona.common.utils.RasterUtils;
+import org.apache.sis.internal.referencing.j2d.AffineTransform2D;
+import org.apache.sis.referencing.CommonCRS;
 import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
@@ -28,7 +30,6 @@ import org.geotools.coverage.grid.GridGeometry2D;
 import org.geotools.coverage.processing.Operations;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
-import org.geotools.referencing.operation.transform.AffineTransform2D;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.metadata.spatial.PixelOrientation;
 import org.opengis.referencing.FactoryException;
@@ -55,6 +56,7 @@ public class RasterEditors
     {
         CoordinateReferenceSystem crs;
         if (srid == 0) {
+            CommonCRS.Vertical
             crs = DefaultEngineeringCRS.GENERIC_2D;
         } else {
             crs = FunctionsGeoTools.sridToCRS(srid);

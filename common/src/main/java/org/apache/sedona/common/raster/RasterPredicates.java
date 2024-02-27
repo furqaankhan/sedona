@@ -24,18 +24,21 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.sedona.common.FunctionsGeoTools;
 import org.apache.sedona.common.utils.CachedCRSTransformFinder;
 import org.apache.sedona.common.utils.GeomUtils;
+import org.apache.sedona.common.utils.SISInternal;
+import org.apache.sis.coverage.grid.GridCoverage2D;
+import org.apache.sis.referencing.CommonCRS;
+import org.apache.sis.referencing.crs.DefaultEngineeringCRS;
+import org.apache.sis.util.Utilities;
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
-import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.crs.GeographicCRS;
+import org.opengis.referencing.cs.AxisDirection;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
+import org.opengis.util.FactoryException;
 
 public class RasterPredicates {
     /**
@@ -87,13 +90,13 @@ public class RasterPredicates {
         Geometry rasterGeometry;
         try {
             rasterGeometry = GeometryFunctions.convexHull(raster);
-        } catch (FactoryException | TransformException e) {
+        } catch (TransformException e) {
             throw new RuntimeException("Failed to calculate the convex hull of the raster", e);
         }
 
         CoordinateReferenceSystem rasterCRS = raster.getCoordinateReferenceSystem();
         if (rasterCRS == null || rasterCRS instanceof DefaultEngineeringCRS) {
-            rasterCRS = DefaultGeographicCRS.WGS84;
+            rasterCRS = CommonCRS.WGS84.normalizedGeographic();
         }
 
         int queryWindowSRID = queryWindow.getSRID();
@@ -127,20 +130,20 @@ public class RasterPredicates {
         try {
             leftGeometry = GeometryFunctions.convexHull(left);
             rightGeometry = GeometryFunctions.convexHull(right);
-        } catch (FactoryException | TransformException e) {
+        } catch (TransformException e) {
             throw new RuntimeException("Failed to calculate the convex hull of the raster", e);
         }
 
         CoordinateReferenceSystem leftCRS = left.getCoordinateReferenceSystem();
         if (leftCRS == null || leftCRS instanceof DefaultEngineeringCRS) {
-            leftCRS = DefaultGeographicCRS.WGS84;
+            leftCRS = CommonCRS.WGS84.normalizedGeographic();
         }
         CoordinateReferenceSystem rightCRS = right.getCoordinateReferenceSystem();
         if (rightCRS == null || rightCRS instanceof DefaultEngineeringCRS) {
-            rightCRS = DefaultGeographicCRS.WGS84;
+            rightCRS = CommonCRS.WGS84.normalizedGeographic();
         }
 
-        if (leftCRS == rightCRS || CRS.equalsIgnoreMetadata(leftCRS, rightCRS)) {
+        if (leftCRS == rightCRS || Utilities.equalsIgnoreMetadata(leftCRS, rightCRS)) {
             return Pair.of(leftGeometry, rightGeometry);
         }
 
@@ -159,8 +162,8 @@ public class RasterPredicates {
      * @return true if the crs matches the EPSG code, false otherwise
      */
     public static boolean isCRSMatchesSRID(CoordinateReferenceSystem crs, int srid) {
-        CRS.AxisOrder axisOrder = CRS.getAxisOrder(crs);
-        if (axisOrder == CRS.AxisOrder.NORTH_EAST) {
+        AxisDirection axisOrder = crs.getCoordinateSystem().getAxis(0).getDirection();
+        if (axisOrder == AxisDirection.NORTH_EAST) {
             // SRID of geometries will always be decoded as CRS in lon/lat axis order. For projected CRS, the
             // axis order should be east/north. If the crs is for Antarctic or Arctic, the axis order may be
             // INAPPLICABLE. In this case, we'll assume that the axis order would match with the query window if
@@ -179,17 +182,17 @@ public class RasterPredicates {
     }
 
     private static Geometry transformGeometryToWGS84(Geometry geometry, CoordinateReferenceSystem crs) {
-        if (crs == DefaultGeographicCRS.WGS84) {
+        if (crs == CommonCRS.WGS84.normalizedGeographic()) {
             return geometry;
         }
         try {
-            MathTransform transform = CachedCRSTransformFinder.findTransform(crs, DefaultGeographicCRS.WGS84);
-            Geometry transformedGeometry = JTS.transform(geometry, transform);
+            MathTransform transform = CachedCRSTransformFinder.findTransform(crs, CommonCRS.WGS84.geographic());
+            Geometry transformedGeometry = SISInternal.transform(geometry, transform);
             if (!(crs instanceof GeographicCRS)) {
                 transformedGeometry = GeomUtils.antiMeridianSafeGeom(transformedGeometry);
             }
             return transformedGeometry;
-        } catch (TransformException e) {
+        } catch (TransformException | FactoryException e) {
             throw new RuntimeException("Cannot transform CRS for evaluating predicate", e);
         }
     }

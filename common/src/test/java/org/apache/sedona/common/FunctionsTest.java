@@ -21,6 +21,7 @@ import org.apache.sedona.common.sphere.Spheroid;
 import org.apache.sedona.common.utils.GeomUtils;
 import org.apache.sedona.common.utils.S2Utils;
 import org.apache.sis.referencing.CRS;
+import org.apache.sis.referencing.CommonCRS;
 import org.junit.Test;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.WKTReader;
@@ -1893,7 +1894,7 @@ public class FunctionsTest extends TestBase {
         assertTrue(e.getMessage().contains("First failed to read as a well-known CRS code"));
 
         // The source CRS is a WKT CRS string
-        String crsWkt = GeomUtils.longitudeFirstCRS(CRS.forCode("EPSG:4326")).toWKT();
+        String crsWkt = CommonCRS.WGS84.normalizedGeographic().toWKT();
         geomActual = FunctionsGeoTools.transform(geomExpected, crsWkt, "EPSG:3857");
         assertEquals(1.3358338895192828E7, geomActual.getCoordinate().x, FP_TOLERANCE);
         assertEquals(8399737.889818355, geomActual.getCoordinate().y, FP_TOLERANCE);

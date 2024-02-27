@@ -13,6 +13,11 @@
  */
 package org.apache.sedona.common.raster;
 
+ import org.apache.sedona.common.utils.GeomUtils;
+ import org.apache.sis.coverage.grid.GridCoverage2D;
+ import org.apache.sis.geometry.DirectPosition2D;
+ import org.apache.sis.referencing.CRS;
+ import org.apache.sis.util.Utilities;
  import org.geotools.coverage.grid.GridCoordinates2D;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
@@ -21,8 +26,6 @@ import org.geotools.gce.geotiff.GeoTiffWriter;
 import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.Assert;
 import org.junit.Before;
 import org.opengis.geometry.DirectPosition;
@@ -31,8 +34,9 @@ import org.opengis.parameter.GeneralParameterValue;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
+ import org.opengis.util.FactoryException;
 
-import javax.media.jai.RasterFactory;
+ import javax.media.jai.RasterFactory;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
@@ -95,7 +99,7 @@ public class RasterTestBase {
         CoordinateReferenceSystem crs = null;
         if (crsCode != null && !crsCode.isEmpty()) {
             try {
-                crs = CRS.decode(crsCode, true);
+                crs = GeomUtils.longitudeFirstCRS(CRS.forCode(crsCode));
             } catch (FactoryException e) {
                 throw new RuntimeException(e);
             }
@@ -122,13 +126,13 @@ public class RasterTestBase {
     }
 
     protected void assertSameCoverage(GridCoverage2D expected, GridCoverage2D actual, int density) {
-        Assert.assertEquals(expected.getNumSampleDimensions(), actual.getNumSampleDimensions());
-        Envelope expectedEnvelope = expected.getEnvelope();
-        Envelope actualEnvelope = actual.getEnvelope();
+        Assert.assertEquals(expected.getSampleDimensions().size(), actual.getSampleDimensions().size());
+        Envelope expectedEnvelope = expected.getEnvelope().get();
+        Envelope actualEnvelope = actual.getEnvelope().get();
         assertSameEnvelope(expectedEnvelope, actualEnvelope, 1e-6);
         CoordinateReferenceSystem expectedCrs = expected.getCoordinateReferenceSystem();
         CoordinateReferenceSystem actualCrs = actual.getCoordinateReferenceSystem();
-        Assert.assertTrue(CRS.equalsIgnoreMetadata(expectedCrs, actualCrs));
+        Assert.assertTrue(Utilities.equalsIgnoreMetadata(expectedCrs, actualCrs));
         assertSameValues(expected, actual, density);
     }
 
@@ -140,13 +144,13 @@ public class RasterTestBase {
     }
 
     protected void assertSameValues(GridCoverage2D expected, GridCoverage2D actual, int density) {
-        Envelope expectedEnvelope = expected.getEnvelope();
+        Envelope expectedEnvelope = expected.getEnvelope().get();
         double x0 = expectedEnvelope.getMinimum(0);
         double y0 = expectedEnvelope.getMinimum(1);
         double xStep = (expectedEnvelope.getMaximum(0) - x0) / density;
         double yStep = (expectedEnvelope.getMaximum(1) - y0) / density;
-        double[] expectedValues = new double[expected.getNumSampleDimensions()];
-        double[] actualValues = new double[expected.getNumSampleDimensions()];
+        double[] expectedValues = new double[expected.getSampleDimensions().size()];
+        double[] actualValues = new double[expected.getSampleDimensions().size()];
         int sampledPoints = 0;
         for (int i = 0; i < density; i++) {
             for (int j = 0; j < density; j++) {

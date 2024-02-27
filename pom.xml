@@ -190,7 +190,7 @@
                 <groupId>it.geosolutions.jaiext.jiffle</groupId>
                 <artifactId>jt-jiffle-language</artifactId>
                 <version>${jt-jiffle.version}</version>
-                <scope>${geotools.scope}</scope>
+                <scope>provided</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -247,6 +247,11 @@
                 <groupId>commons-lang</groupId>
                 <artifactId>commons-lang</artifactId>
                 <version>2.6</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.14.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
