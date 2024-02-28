@@ -20,6 +20,7 @@ package org.apache.sedona.common.raster;
 
 import org.apache.sedona.common.utils.RasterUtils;
 import org.apache.sis.coverage.grid.GridCoverage2D;
+import org.apache.sis.geometry.Envelope2D;
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.referencing.operation.transform.AffineTransform2D;
@@ -27,11 +28,13 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
+import org.opengis.geometry.Envelope;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.FactoryException;
 
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.util.Arrays;
 import java.util.Set;
@@ -58,20 +61,20 @@ public class RasterAccessors
     }
 
     public static int getWidth(GridCoverage2D raster) {
-        return raster.getGridGeometry().getGridRange().getSpan(0);
+        return (int) raster.getGridGeometry().getEnvelope().getSpan(0);
     }
 
     public static int getHeight(GridCoverage2D raster) {
-        return raster.getGridGeometry().getGridRange().getSpan(1);
+        return (int) raster.getGridGeometry().getEnvelope().getSpan(1);
     }
 
     public static double getUpperLeftX(GridCoverage2D raster) {
-        AffineTransform2D affine = RasterUtils.getGDALAffineTransform(raster);
+        AffineTransform affine = RasterUtils.getGDALAffineTransform(raster);
         return affine.getTranslateX();
     }
 
     public static double getUpperLeftY(GridCoverage2D raster) {
-        AffineTransform2D affine = RasterUtils.getGDALAffineTransform(raster);
+        AffineTransform affine = RasterUtils.getGDALAffineTransform(raster);
         return affine.getTranslateY();
     }
 
@@ -199,7 +202,7 @@ public class RasterAccessors
 
     public static Geometry getGridCoord(GridCoverage2D raster, Geometry point) throws TransformException {
         ensurePoint(point);
-        point = RasterUtils.convertCRSIfNeeded(point, raster.getCoordinateReferenceSystem2D());
+        point = RasterUtils.convertCRSIfNeeded(point, raster.getCoordinateReferenceSystem());
         Point actualPoint = (Point) point;
         return getGridCoord(raster, actualPoint.getX(), actualPoint.getY());
     }
@@ -210,7 +213,7 @@ public class RasterAccessors
 
     public static int getGridCoordX(GridCoverage2D raster, Geometry point) throws TransformException {
         ensurePoint(point);
-        point = RasterUtils.convertCRSIfNeeded(point, raster.getCoordinateReferenceSystem2D());
+        point = RasterUtils.convertCRSIfNeeded(point, raster.getCoordinateReferenceSystem());
         Point actualPoint = (Point) point;
         return getGridCoordX(raster, actualPoint.getX(), actualPoint.getY());
     }
@@ -221,7 +224,7 @@ public class RasterAccessors
 
     public static int getGridCoordY(GridCoverage2D raster, Geometry point) throws TransformException {
         ensurePoint(point);
-        point = RasterUtils.convertCRSIfNeeded(point, raster.getCoordinateReferenceSystem2D());
+        point = RasterUtils.convertCRSIfNeeded(point, raster.getCoordinateReferenceSystem());
         Point actualPoint = (Point) point;
         return getGridCoordY(raster, actualPoint.getX(), actualPoint.getY());
     }
@@ -252,8 +255,8 @@ public class RasterAccessors
             throws FactoryException
     {
         // Get Geo-reference metadata
-        GridEnvelope2D gridRange = raster.getGridGeometry().getGridRange2D();
-        AffineTransform2D affine = RasterUtils.getGDALAffineTransform(raster);
+        Envelope gridRange = raster.getGridGeometry().getEnvelope();
+        AffineTransform affine = RasterUtils.getGDALAffineTransform(raster);
 
         // Get the affine parameters
         double upperLeftX = affine.getTranslateX();
@@ -264,8 +267,8 @@ public class RasterAccessors
         double skewY = affine.getShearY();
         return new double[] {
                 upperLeftX, upperLeftY,
-                gridRange.getWidth(), gridRange.getHeight(),
+                gridRange.getSpan(0), gridRange.getSpan(1),
                 scaleX, scaleY, skewX, skewY,
-                srid(raster), raster.getNumSampleDimensions()};
+                srid(raster), raster.getSampleDimensions().size()};
     }
 }

@@ -432,7 +432,7 @@ public class RasterPredicatesTest extends RasterTestBase {
         // Within the envelope of the raster, but not the convex hull of the raster
         queryWindow = GEOMETRY_FACTORY.createPoint(new Coordinate(9.91, 103.86));
         queryWindow.setSRID(3857);
-        Geometry rasterEnvelope = JTS.toGeometry((BoundingBox) raster.getEnvelope2D());
+        Geometry rasterEnvelope = SISInternal.toGeometry(raster.getEnvelope().get());
         Assert.assertTrue(rasterEnvelope.contains(queryWindow));
         result = RasterPredicates.rsContains(raster, queryWindow);
         Assert.assertFalse(result);

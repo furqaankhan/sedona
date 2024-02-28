@@ -29,8 +29,6 @@ import org.apache.sis.coverage.grid.GridCoverage2D;
 import org.apache.sis.referencing.CommonCRS;
 import org.apache.sis.referencing.crs.DefaultEngineeringCRS;
 import org.apache.sis.util.Utilities;
-import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -162,8 +160,9 @@ public class RasterPredicates {
      * @return true if the crs matches the EPSG code, false otherwise
      */
     public static boolean isCRSMatchesSRID(CoordinateReferenceSystem crs, int srid) {
-        AxisDirection axisOrder = crs.getCoordinateSystem().getAxis(0).getDirection();
-        if (axisOrder == AxisDirection.NORTH_EAST) {
+        AxisDirection axisDirection0 = crs.getCoordinateSystem().getAxis(0).getDirection();
+        AxisDirection axisDirection1 = crs.getCoordinateSystem().getAxis(1).getDirection();
+        if (axisDirection0 == AxisDirection.NORTH_EAST && axisDirection1 == AxisDirection.NORTH_EAST) {
             // SRID of geometries will always be decoded as CRS in lon/lat axis order. For projected CRS, the
             // axis order should be east/north. If the crs is for Antarctic or Arctic, the axis order may be
             // INAPPLICABLE. In this case, we'll assume that the axis order would match with the query window if

@@ -24,6 +24,10 @@ import org.apache.sedona.common.Functions;
 import org.apache.sedona.common.FunctionsGeoTools;
 import org.apache.sedona.common.raster.RasterAccessors;
 import org.apache.sedona.common.raster.RasterEditors;
+import org.apache.sis.coverage.grid.GridCoverage2D;
+import org.apache.sis.coverage.grid.GridGeometry;
+import org.apache.sis.geometry.DirectPosition2D;
+import org.apache.sis.referencing.operation.matrix.AffineTransforms2D;
 import org.geotools.coverage.Category;
 import org.geotools.coverage.CoverageFactoryFinder;
 import org.geotools.coverage.GridSampleDimension;
@@ -44,6 +48,7 @@ import org.opengis.geometry.DirectPosition;
 import org.opengis.metadata.spatial.PixelOrientation;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.InternationalString;
@@ -54,6 +59,7 @@ import java.awt.Color;
 import java.awt.Point;
 import java.awt.Transparency;
 import java.awt.color.ColorSpace;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
@@ -364,17 +370,17 @@ public class RasterUtils {
      * @param raster The raster to get the affine transform from.
      * @return The affine transform.
      */
-    public static AffineTransform2D getGDALAffineTransform(GridCoverage2D raster) {
-        return getAffineTransform(raster, PixelOrientation.UPPER_LEFT);
+    public static AffineTransform getGDALAffineTransform(GridCoverage2D raster) {
+        return getAffineTransform(raster, PixelInCell.CELL_CORNER);
     }
 
-    public static AffineTransform2D getAffineTransform(GridCoverage2D raster, PixelOrientation orientation) throws UnsupportedOperationException {
-        GridGeometry2D gridGeometry2D = raster.getGridGeometry();
-        MathTransform crsTransform = gridGeometry2D.getGridToCRS2D(orientation);
-        if (!(crsTransform instanceof AffineTransform2D)) {
+    public static AffineTransform getAffineTransform(GridCoverage2D raster, PixelInCell orientation) throws UnsupportedOperationException {
+        GridGeometry gridGeometry2D = raster.getGridGeometry();
+        MathTransform crsTransform = gridGeometry2D.getGridToCRS(orientation);
+        if (!(crsTransform instanceof AffineTransform)) {
             throw new UnsupportedOperationException("Only AffineTransform2D is supported");
         }
-        return (AffineTransform2D) crsTransform;
+        return AffineTransforms2D.castOrCopy(crsTransform);
     }
 
     /**
@@ -384,7 +390,7 @@ public class RasterUtils {
      * @param offsetY the offset in y direction
      * @return the translated affine transformation
      */
-    public static AffineTransform2D translateAffineTransform(AffineTransform2D affine, int offsetX, int offsetY) {
+    public static AffineTransform translateAffineTransform(AffineTransform affine, int offsetX, int offsetY) {
         double ipX = affine.getTranslateX();
         double ipY = affine.getTranslateY();
         double scaleX = affine.getScaleX();
@@ -395,11 +401,11 @@ public class RasterUtils {
         // Move the origin using the affine transformation, and leave scale and skew unchanged.
         double newIpX = ipX + offsetX * scaleX + offsetY * skewX;
         double newIpY = ipY + offsetX * skewY + offsetY * scaleY;
-        return new AffineTransform2D(scaleX, skewY, skewX, scaleY, newIpX, newIpY);
+        return new AffineTransform(scaleX, skewY, skewX, scaleY, newIpX, newIpY);
     }
 
     public static Point2D getWorldCornerCoordinates(GridCoverage2D raster, int colX, int rowY) throws TransformException {
-        return raster.getGridGeometry().getGridToCRS2D(PixelOrientation.UPPER_LEFT).transform(new GridCoordinates2D(colX - 1, rowY - 1), null);
+        return raster.getGridGeometry().getGridToCRS(PixelInCell.CELL_CORNER).transform(new GridCoordinates(colX - 1, rowY - 1), null);
     }
 
     /***
@@ -412,9 +418,11 @@ public class RasterUtils {
      * @throws TransformException
      */
     public static Point2D getWorldCornerCoordinatesWithRangeCheck(GridCoverage2D raster, int colX, int rowY) throws IndexOutOfBoundsException, TransformException {
-        GridCoordinates2D gridCoordinates2D = new GridCoordinates2D(colX - 1, rowY - 1);
-        if (!(raster.getGridGeometry().getGridRange2D().contains(gridCoordinates2D))) throw new IndexOutOfBoundsException(String.format("Specified pixel coordinates (%d, %d) do not lie in the raster", colX, rowY));
-        return raster.getGridGeometry().getGridToCRS2D(PixelOrientation.UPPER_LEFT).transform(gridCoordinates2D, null);
+        DirectPosition2D gridCoordinates2D = new DirectPosition2D(colX - 1, rowY - 1);
+        if (!(raster.getGridGeometry().getGridRange2D().contains(gridCoordinates2D))) {
+            throw new IndexOutOfBoundsException(String.format("Specified pixel coordinates (%d, %d) do not lie in the raster", colX, rowY));
+        }
+        return raster.getGridGeometry().getGridToCRS(PixelInCell.CELL_CORNER).transform(gridCoordinates2D, null);
     }
     public static int[] getGridCoordinatesFromWorld(GridCoverage2D raster, double longitude, double latitude) throws TransformException {
         DirectPosition2D directPosition2D = new DirectPosition2D(raster.getCoordinateReferenceSystem2D(), longitude, latitude);

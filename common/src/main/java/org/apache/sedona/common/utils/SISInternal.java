@@ -19,12 +19,14 @@
 package org.apache.sedona.common.utils;
 
 
+import org.apache.sis.coverage.grid.GridCoverage2D;
 import org.apache.sis.geometry.Envelope2D;
+import org.apache.sis.geometry.Envelopes;
 import org.apache.sis.geometry.GeneralEnvelope;
 import org.apache.sis.internal.feature.Geometries;
 import org.apache.sis.internal.feature.jts.JTS;
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.*;
+import org.opengis.geometry.DirectPosition;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.FactoryException;
@@ -34,15 +36,55 @@ import org.opengis.util.FactoryException;
  * in Apache SIS internal classes.
  */
 public class SISInternal {
-    public static Geometry transform(Geometry geom, MathTransform crs) throws FactoryException, TransformException {
-        return JTS.transform(geom, crs);
+
+    private static GeometryFactory geometryFactory = new GeometryFactory();
+
+    public static Geometry transform(Geometry geom, MathTransform transform) throws FactoryException, TransformException {
+        return JTS.transform(geom, transform);
     }
 
     public static Envelope2D getEnvelope2D(final Geometry geometry) throws FactoryException {
         final Envelope bounds = geometry.getEnvelopeInternal();
-        final Envelope2D env = new Envelope2D();
-        env.setCoordinateReferenceSystem(JTS.getCoordinateReferenceSystem(geometry));
-        env.setFrameFromDiagonal(bounds.getMinX(), bounds.getMinY(), bounds.getMaxX(), bounds.getMaxY());
-        return env;
+        final Envelope2D envelope = new Envelope2D();
+        envelope.setCoordinateReferenceSystem(JTS.getCoordinateReferenceSystem(geometry));
+        envelope.setFrameFromDiagonal(bounds.getMinX(), bounds.getMinY(), bounds.getMaxX(), bounds.getMaxY());
+        return envelope;
+    }
+
+    public static Envelope2D getEnvelope2D(GridCoverage2D raster) {
+        org.opengis.geometry.Envelope bounds = raster.getEnvelope().get();
+        Envelope2D envelope = new Envelope2D();
+        envelope.setCoordinateReferenceSystem(bounds.getCoordinateReferenceSystem());
+        DirectPosition lowerCorner = bounds.getLowerCorner();
+        DirectPosition upperCorner = bounds.getUpperCorner();
+        envelope.setFrameFromDiagonal(lowerCorner.getOrdinate(0), lowerCorner.getOrdinate(1), upperCorner.getOrdinate(0), upperCorner.getOrdinate(1));
+        return envelope;
+    }
+
+    /**
+     * Creates a JTS polygon from org.opengis.geometry.Envelope. This method was created to support JTS.toGeometry from GeoTools
+     * @param envelope
+     * @return
+     */
+    public static Polygon toGeometry(org.opengis.geometry.Envelope envelope) {
+        DirectPosition lowerCorner = envelope.getLowerCorner();
+        double minX = lowerCorner.getOrdinate(0);
+        double minY = lowerCorner.getOrdinate(1);
+        DirectPosition upperCorner = envelope.getUpperCorner();
+        double maxX = lowerCorner.getOrdinate(0);
+        double maxY = lowerCorner.getOrdinate(1);
+        Polygon polygon = geometryFactory.createPolygon(
+                geometryFactory.createLinearRing(
+                        new Coordinate[] {
+                                new Coordinate(minX, minY),
+                                new Coordinate(maxX, minY),
+                                new Coordinate(maxX, maxY),
+                                new Coordinate(minX, maxY),
+                                new Coordinate(minX, minY)
+                        }
+                )
+        );
+        polygon.setUserData(envelope.getCoordinateReferenceSystem());
+        return polygon;
     }
 }

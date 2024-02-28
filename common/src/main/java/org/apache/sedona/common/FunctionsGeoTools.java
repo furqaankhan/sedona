@@ -14,11 +14,11 @@
 package org.apache.sedona.common;
 
 import org.apache.sedona.common.utils.GeomUtils;
+import org.apache.sedona.common.utils.SISInternal;
 import org.apache.sis.referencing.crs.AbstractCRS;
 import org.apache.sis.referencing.cs.AxesConvention;
 import org.apache.sis.referencing.CRS;
 import org.apache.sis.util.Utilities;
-import org.geotools.geometry.jts.JTS;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -79,7 +79,7 @@ public class FunctionsGeoTools {
         // If sourceCRS and targetCRS are equal, return the geometry unchanged
         if (!Utilities.equalsIgnoreMetadata(sourceCRS, targetCRS)) {
             MathTransform transform = CRS.findOperation(sourceCRS, targetCRS, null).getMathTransform();
-            return JTS.transform(geometry, transform);
+            return SISInternal.transform(geometry, transform);
         }
         else return geometry;
     }

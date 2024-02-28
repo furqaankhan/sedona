@@ -15,7 +15,8 @@ package org.apache.sedona.common.subDivide;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sedona.common.simplify.GeometrySimplifier;
-import org.geotools.geometry.jts.JTS;
+import org.apache.sedona.common.utils.SISInternal;
+import org.apache.sis.geometry.GeneralEnvelope;
 import org.locationtech.jts.geom.*;
 
 import java.util.ArrayList;
@@ -151,13 +152,13 @@ public class GeometrySubDivider {
     }
 
     private static Geometry getIntersectionGeometries(SubDivideExtent extent, Geometry geom) {
-        Envelope subBox = new Envelope(
-                extent.getxMin(),
-                extent.getxMax(),
-                extent.getyMin(),
-                extent.getyMax()
+        GeneralEnvelope subBox = new GeneralEnvelope(
+                new double[]{extent.getxMin(),
+                extent.getxMax()},
+                new double[]{extent.getyMin(),
+                extent.getyMax()}
         );
-        Geometry intersected = geom.intersection(JTS.toGeometry(subBox));
+        Geometry intersected = geom.intersection(SISInternal.toGeometry(subBox));
         Geometry res = GeometrySimplifier.simplify(intersected, true, 0.0);
         return res;
     }

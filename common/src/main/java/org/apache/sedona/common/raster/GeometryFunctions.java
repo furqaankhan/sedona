@@ -20,11 +20,13 @@
 package org.apache.sedona.common.raster;
 
 import org.apache.sedona.common.utils.RasterUtils;
+import org.apache.sedona.common.utils.SISInternal;
 import org.apache.sis.coverage.grid.GridCoverage2D;
-import org.geotools.coverage.grid.GridCoordinates2D;
-import org.geotools.geometry.Envelope2D;
+import org.apache.sis.geometry.DirectPosition2D;
+import org.apache.sis.geometry.Envelope2D;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.geom.impl.CoordinateArraySequence;
+import org.opengis.geometry.DirectPosition;
 import org.opengis.referencing.operation.TransformException;
 import org.opengis.util.FactoryException;
 
@@ -72,8 +74,8 @@ public class GeometryFunctions {
             for (int i = 0; i < width; i++) {
                 // get the value of the raster at the coordinates i, j
                 //if value is not no data, update variables to track minX, maxX, minY, maxY
-                GridCoordinates2D currGridCoordinate = new GridCoordinates2D(i, j);
-                double[] bandPixelValues = raster.evaluate(currGridCoordinate, (double[]) null);
+                DirectPosition2D directPosition = new DirectPosition2D(i, j);
+                double[] bandPixelValues = raster.evaluator().apply(directPosition);
                 int start = band == null ? 1 : band;
                 int end = band == null ? RasterAccessors.numBands(raster) : band;
                 for (int currBand = start; currBand <= end; currBand++) {
@@ -118,7 +120,7 @@ public class GeometryFunctions {
     }
 
     public static Geometry envelope(GridCoverage2D raster) throws FactoryException {
-        Envelope2D envelope2D = raster.getEnvelope2D();
+        Envelope2D envelope2D = SISInternal.getEnvelope2D(raster);
 
         Envelope envelope = new Envelope(envelope2D.getMinX(), envelope2D.getMaxX(), envelope2D.getMinY(), envelope2D.getMaxY());
         int srid = RasterAccessors.srid(raster);

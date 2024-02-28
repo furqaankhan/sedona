@@ -18,6 +18,7 @@ import org.apache.sedona.common.raster.inputstream.ByteArrayImageInputStream;
 import org.apache.sedona.common.raster.netcdf.NetCdfReader;
 import org.apache.sedona.common.utils.ImageUtils;
 import org.apache.sedona.common.utils.RasterUtils;
+import org.apache.sedona.common.utils.SISInternal;
 import org.apache.sis.coverage.grid.GridCoverage2D;
 import org.apache.sis.geometry.Envelope2D;
 import org.geotools.coverage.GridSampleDimension;
@@ -180,7 +181,7 @@ public class RasterConstructors
         Envelope2D bound = null;
 
         if (useGeometryExtent) {
-            bound = JTS.getEnvelope2D(geom.getEnvelopeInternal(), raster.getCoordinateReferenceSystem2D());
+            bound = SISInternal.getEnvelope2D(geom.getEnvelopeInternal(), raster.getCoordinateReferenceSystem2D());
         } else {
             ReferencedEnvelope envelope = ReferencedEnvelope.create(raster.getEnvelope(), raster.getCoordinateReferenceSystem());
             bound = JTS.getEnvelope2D(envelope, raster.getCoordinateReferenceSystem2D());

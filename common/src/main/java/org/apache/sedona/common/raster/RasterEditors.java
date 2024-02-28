@@ -20,10 +20,13 @@ package org.apache.sedona.common.raster;
 
 import org.apache.sedona.common.FunctionsGeoTools;
 import org.apache.sedona.common.utils.RasterUtils;
-import org.apache.sis.internal.referencing.j2d.AffineTransform2D;
+import org.apache.sedona.common.utils.SISInternal;
+import org.apache.sis.coverage.grid.*;
+import org.apache.sis.geometry.Envelope2D;
+import org.apache.sis.image.Interpolation;
+import org.apache.sis.referencing.operation.matrix.AffineTransforms2D;
 import org.apache.sis.referencing.CommonCRS;
 import org.geotools.coverage.CoverageFactoryFinder;
-import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
 import org.geotools.coverage.grid.GridEnvelope2D;
 import org.geotools.coverage.grid.GridGeometry2D;
@@ -38,8 +41,10 @@ import org.opengis.referencing.datum.PixelInCell;
 import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.MathTransform2D;
 import org.opengis.referencing.operation.TransformException;
+import org.opengis.util.FactoryException;
 
 import javax.media.jai.Interpolation;
+import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.image.DataBuffer;
 import java.awt.image.RenderedImage;
@@ -66,7 +71,7 @@ public class RasterEditors
         MathTransform2D transform = raster.getGridGeometry().getGridToCRS2D();
         Map<?, ?> properties = raster.getProperties();
         GridCoverage[] sources = raster.getSources().toArray(new GridCoverage[0]);
-        return gridCoverageFactory.create(raster.getName().toString(), raster.getRenderedImage(), crs, transform, raster.getSampleDimensions(), sources, properties);
+        return gridCoverageFactory.create(raster.getName().toString(), raster.render(null), crs, transform, raster.getSampleDimensions(), sources, properties);
     }
 
     public static GridCoverage2D setGeoReference(GridCoverage2D raster, String geoRefCoords, String format) {
@@ -117,12 +122,12 @@ public class RasterEditors
         /*
         * Old Parameters
         */
-        AffineTransform2D affine = RasterUtils.getGDALAffineTransform(raster);
+        AffineTransform affine = RasterUtils.getGDALAffineTransform(raster);
         int originalWidth = RasterAccessors.getWidth(raster), originalHeight = RasterAccessors.getHeight(raster);
         double upperLeftX = affine.getTranslateX(), upperLeftY = affine.getTranslateY();
         double originalSkewX = affine.getShearX(), originalSkewY = affine.getShearY();
         double originalScaleX = affine.getScaleX(), originalScaleY = affine.getScaleY();
-        CoordinateReferenceSystem crs = raster.getCoordinateReferenceSystem2D();
+        CoordinateReferenceSystem crs = raster.getCoordinateReferenceSystem();
 
         /*
          * New Parameters
@@ -139,7 +144,7 @@ public class RasterEditors
         }
 
 
-        Envelope2D envelope2D = raster.getEnvelope2D();
+        Envelope2D envelope2D = SISInternal.getEnvelope2D(raster);
         //process scale changes due to changes in widthOrScale and heightOrScale
         if (!useScale) {
             newScaleX = (Math.abs(envelope2D.getMaxX() - envelope2D.getMinX())) / newWidth;
@@ -181,23 +186,26 @@ public class RasterEditors
                 newUpperLeftY = expectedGeoPoint.getY();
             }
         }
-
-        MathTransform transform = new AffineTransform2D(newScaleX, originalSkewY, originalSkewX, newScaleY, newUpperLeftX, newUpperLeftY);
-        GridGeometry2D gridGeometry = new GridGeometry2D(
-                new GridEnvelope2D(0, 0, newWidth, newHeight),
+        AffineTransform affineTransform = new AffineTransform(newScaleX, originalSkewY, originalSkewX, newScaleY, newUpperLeftX, newUpperLeftY);
+        MathTransform transform = AffineTransforms2D.toMathTransform(affineTransform);
+        GridGeometry gridGeometry = new GridGeometry(
+                new GridExtent(newWidth, newHeight),
                 PixelInCell.CELL_CORNER,
-                transform, crs, null);
-        Interpolation resamplingAlgorithm = Interpolation.getInstance(0);
+                transform, crs);
+        GridCoverageProcessor coverageProcessor = new GridCoverageProcessor();
+        Interpolation resamplingAlgorithm = Interpolation.NEAREST;
         if (!Objects.isNull(algorithm) && !algorithm.isEmpty()) {
             if (algorithm.equalsIgnoreCase("nearestneighbor")) {
-                resamplingAlgorithm = Interpolation.getInstance(0);
+                resamplingAlgorithm = Interpolation.NEAREST;
             }else if (algorithm.equalsIgnoreCase("bilinear")) {
-                resamplingAlgorithm = Interpolation.getInstance(1);
+                resamplingAlgorithm = Interpolation.BILINEAR;
             }else if (algorithm.equalsIgnoreCase("bicubic")) {
-                resamplingAlgorithm = Interpolation.getInstance(2);
+                // TODO change the docs!!
+                resamplingAlgorithm = Interpolation.LANCZOS;
             }
         }
-        GridCoverage2D newRaster = (GridCoverage2D) Operations.DEFAULT.resample(raster, null, gridGeometry, resamplingAlgorithm);
+        coverageProcessor.setInterpolation(resamplingAlgorithm);
+        GridCoverage2D newRaster = (GridCoverage2D) coverageProcessor.resample(raster, gridGeometry);
         return newRaster;
     }
     public static GridCoverage2D resample(GridCoverage2D raster, double widthOrScale, double heightOrScale, boolean useScale, String algorithm) throws TransformException {
@@ -205,7 +213,7 @@ public class RasterEditors
 
     }
 
-    public static GridCoverage2D resample(GridCoverage2D raster, GridCoverage2D referenceRaster, boolean useScale, String algorithm) throws FactoryException, TransformException {
+    public static GridCoverage2D resample(GridCoverage2D raster, GridCoverage2D referenceRaster, boolean useScale, String algorithm) throws TransformException, FactoryException {
         int srcSRID = RasterAccessors.srid(raster);
         int destSRID = RasterAccessors.srid(referenceRaster);
         if (srcSRID != destSRID) {
@@ -272,7 +280,7 @@ public class RasterEditors
             throw new IllegalArgumentException("minLim cannot be greater than maxLim");
         }
 
-        int numBands = rasterGeom.getNumSampleDimensions();
+        int numBands = rasterGeom.getSampleDimensions().size();
         RenderedImage renderedImage = rasterGeom.getRenderedImage();
         int rasterDataType = renderedImage.getSampleModel().getDataType();
 
@@ -293,7 +301,7 @@ public class RasterEditors
         if (minValue == null || maxValue == null) {
             for (int bandIndex = 0; bandIndex < numBands; bandIndex++) {
                 double[] bandValues = bandAsArray(rasterGeom, bandIndex + 1);
-                double bandNoDataValue = RasterUtils.getNoDataValue(rasterGeom.getSampleDimension(bandIndex));
+                double bandNoDataValue = RasterUtils.getNoDataValue(rasterGeom.getSampleDimensions().get(bandIndex));
 
                 if (noDataValue == null) {
                     noDataValue = maxLim;
@@ -319,7 +327,7 @@ public class RasterEditors
         // Normalize each band
         for (int bandIndex = 0; bandIndex < numBands; bandIndex++) {
             double[] bandValues = bandAsArray(rasterGeom, bandIndex + 1);
-            double bandNoDataValue = RasterUtils.getNoDataValue(rasterGeom.getSampleDimension(bandIndex));
+            double bandNoDataValue = RasterUtils.getNoDataValue(rasterGeom.getSampleDimensions().get(bandIndex));
             double currentMin = normalizeAcrossBands ? globalMin : (minValue != null ? minValue : minValues[bandIndex]);
             double currentMax = normalizeAcrossBands ? globalMax : (maxValue != null ? maxValue : maxValues[bandIndex]);
 
