@@ -44,11 +44,12 @@ COPY ./ ${SEDONA_HOME}/
 
 RUN chmod +x ${SEDONA_HOME}/docker/spark.sh
 RUN chmod +x ${SEDONA_HOME}/docker/sedona.sh
-RUN ${SEDONA_HOME}/docker/spark.sh ${spark_version} ${hadoop_version} ${hadoop_s3_version} ${aws_sdk_version} ${spark_xml_version}
+RUN ${SEDONA_HOME}/docker/spark.sh 3.5.1 ${hadoop_version} ${hadoop_s3_version} ${aws_sdk_version} ${spark_xml_version}
 RUN ${SEDONA_HOME}/docker/sedona.sh ${sedona_version} ${geotools_wrapper_version} ${spark_version} ${spark_extension_version}
 
 # Install Python dependencies
 COPY docker/sedona-spark-jupyterlab/requirements.txt /opt/requirements.txt
+COPY docker/sedona-spark-jupyterlab/keplergl-0.3.2-py2.py3-none-any.whl /opt/keplergl-0.3.2-py2.py3-none-any.whl
 RUN pip3 install -r /opt/requirements.txt
 
 COPY docs/usecases/*.ipynb /opt/workspace/examples/
